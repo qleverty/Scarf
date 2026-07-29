@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Messenger</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e0e0e;
+    --surface: #1a1a1a;
+    --border: #2e2e2e;
+    --text: #e8e8e8;
+    --muted: #666;
+    --accent: #c8f060;
+    --danger: #ff4d4d;
+    --radius: 4px;
+    --font: 'IBM Plex Mono', monospace;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    width: 340px;
+    border: 1px solid var(--border);
+    padding: 32px 28px;
+  }
+  .logo {
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+  .logo span { color: var(--accent); }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 28px; letter-spacing: -.02em; }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 11px 16px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color .15s, color .15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn + .btn { margin-top: 10px; }
+  .btn .icon { margin-right: 10px; opacity: .6; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
+  .connect-form { display: none; flex-direction: column; gap: 8px; }
+  .connect-form.visible { display: flex; }
+  .input {
+    padding: 10px 12px;
+    font-family: var(--font);
+    font-size: 13px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    outline: none;
+    width: 100%;
+    transition: border-color .15s;
+  }
+  .input:focus { border-color: var(--accent); }
+  .input::placeholder { color: var(--muted); }
+  .row { display: flex; gap: 8px; }
+  .row .btn { flex: 1; }
+  .err { font-size: 11px; color: var(--danger); display: none; margin-top: 4px; }
+  .status { font-size: 11px; color: var(--muted); margin-top: 16px; min-height: 16px; }
+  .status.ok { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo"><span>//</span> P2P Messenger</div>
+  <h1>Start or Join</h1>
+
+  <button class="btn" id="btnServer" onclick="startServer()">
+    <span class="icon">▶</span>Start Server
+  </button>
+
+  <button class="btn" id="btnConnect" onclick="toggleConnect()">
+    <span class="icon">→</span>Connect to Server
+  </button>
+
+  <div class="connect-form" id="connectForm">
+    <hr class="divider">
+    <input class="input" id="addr" type="text"
+           placeholder="192.168.x.x:4242"
+           onkeydown="if(event.key==='Enter')doConnect()">
+    <div class="row">
+      <button class="btn" onclick="doConnect()">Connect</button>
+      <button class="btn" onclick="toggleConnect()">Cancel</button>
+    </div>
+    <div class="err" id="connectErr">Invalid address</div>
+  </div>
+
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+const { invoke } = window.__TAURI__.core;
+
+async function startServer() {
+  document.getElementById('status').textContent = 'Starting server...';
+  document.getElementById('status').className = 'status';
+  try {
+    const port = await invoke('start_server');
+    document.getElementById('status').textContent = `Server running on :${port}`;
+    document.getElementById('status').className = 'status ok';
+    document.getElementById('btnServer').disabled = true;
+  } catch(e) {
+    document.getElementById('status').textContent = 'Error: ' + e;
+  }
+}
+
+function toggleConnect() {
+  const f = document.getElementById('connectForm');
+  const visible = f.classList.toggle('visible');
+  if (visible) document.getElementById('addr').focus();
+}
+
+async function doConnect() {
+  const addr = document.getElementById('addr').value.trim();
+  if (!addr) {
+    document.getElementById('connectErr').style.display = 'block';
+    return;
+  }
+  document.getElementById('connectErr').style.display = 'none';
+  document.getElementById('status').textContent = 'Connecting...';
+  try {
+    await invoke('connect_to', { address: addr });
+    document.getElementById('status').textContent = 'Client window opened';
+    document.getElementById('status').className = 'status ok';
+  } catch(e) {
+    document.getElementById('status').textContent = 'Error: ' + e;
+  }
+}
+</script>
+</body>
+</html>

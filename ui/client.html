@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Client</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e0e0e; --surface: #161616; --border: #272727;
+    --text: #e0e0e0; --muted: #555; --accent: #60c8f0;
+    --me-bg: #0d1f2b; --them-bg: #161616;
+    --sys: #3a3a3a; --font: 'IBM Plex Mono', monospace;
+  }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); display: flex; flex-direction: column; }
+  .center { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; letter-spacing: .08em; }
+  #busy { display: none; color: #ff6b6b; }
+  #chat { flex: 1; display: none; flex-direction: column; min-height: 0; }
+  #hdr { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  #hdr .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  #msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .msg-wrap { display: flex; flex-direction: column; }
+  .msg-wrap.me { align-items: flex-end; }
+  .msg-wrap.them { align-items: flex-start; }
+  .msg-wrap.sys { align-items: center; }
+  .bub { max-width: 68%; padding: 8px 12px; border: 1px solid var(--border); font-size: 13px; line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
+  .me .bub { background: var(--me-bg); border-color: #183040; }
+  .them .bub { background: var(--them-bg); }
+  .sys .bub { background: transparent; border: none; font-size: 11px; color: var(--sys); padding: 2px 0; }
+  .ts { font-size: 10px; color: var(--muted); margin-top: 3px; padding: 0 2px; }
+  .file-card { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); background: var(--surface); max-width: 280px; }
+  .file-icon { font-size: 18px; flex-shrink: 0; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .file-btn { font-family: var(--font); font-size: 11px; padding: 5px 10px; border: 1px solid var(--border); background: transparent; color: var(--accent); cursor: pointer; text-decoration: none; white-space: nowrap; display: inline-block; }
+  .file-btn:hover { background: var(--me-bg); }
+  .file-btn:disabled { color: var(--muted); cursor: default; pointer-events: none; }
+  .offer-pending { color: var(--muted); font-size: 11px; }
+  #fbar { display: none; align-items: center; gap: 8px; padding: 4px 14px 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+  #fbar .fname { color: var(--accent); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #fbar button { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px; }
+  #fbar button:hover { color: var(--text); }
+  #irow { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
+  #irow button { width: 32px; height: 32px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-size: 14px; flex-shrink: 0; }
+  #irow button:hover { border-color: var(--accent); color: var(--accent); }
+  #ti { flex: 1; height: 32px; padding: 4px 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
+  #ti:focus { border-color: var(--accent); }
+  #fi { display: none; }
+</style>
+</head>
+<body>
+<div id="conn" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;">
+  <div id="conn-status" style="color:#60c8f0;font-size:13px;letter-spacing:.08em;">Initializing...</div>
+  <div id="dbg" style="width:100%;max-width:560px;background:#111;border:1px solid #2a2a2a;padding:10px;font-size:11px;color:#888;font-family:'IBM Plex Mono',monospace;max-height:260px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
+</div>
+<div id="busy" class="center">Server busy — another client is already connected.</div>
+<div id="chat">
+  <div id="hdr"><span class="dot"></span><span id="hdrText">Client</span></div>
+  <div id="msgs"></div>
+  <div id="fbar">
+    <span>📎</span>
+    <span class="fname" id="fn"></span>
+    <button onclick="clearFile()" title="Remove">✕</button>
+  </div>
+  <div id="irow">
+    <button onclick="pickFile()" title="Attach file">+</button>
+    <input id="fi" type="file">
+    <input id="ti" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')snd()">
+    <button onclick="snd()" title="Send">→</button>
+  </div>
+</div>
+
+<script>
+const ROLE = 'client';
+const isTauri = typeof window.__TAURI__ !== 'undefined';
+// Безопасная инициализация invoke — структура __TAURI__ отличается по версиям Tauri
+const invoke = isTauri
+  ? (window.__TAURI__.core?.invoke ?? window.__TAURI__?.invoke ?? null)
+  : null;
+
+// SERVER_BASE: явный базовый URL для всех API-запросов.
+// Если страница загружена как локальный файл (tauri://localhost или file://) —
+// адрес сервера берём из query-параметра ?server=http://192.168.x.x:4242
+// Если загружена напрямую из браузера по http:// — используем window.location.origin
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = params.get('server');
+  if (fromQuery) {
+    window.SERVER_BASE = fromQuery.replace(/\/$/, '');
+  } else if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+    window.SERVER_BASE = window.location.origin;
+  } else {
+    // tauri:// или file:// без параметра — fallback, будет ошибка в init()
+    window.SERVER_BASE = '';
+  }
+})();
+
+function api(path) {
+  return window.SERVER_BASE + path;
+}
+
+function dbg(msg) {
+  const el = document.getElementById('dbg');
+  if (!el) return;
+  const ts = new Date().toLocaleTimeString();
+  el.textContent += '[' + ts + '] ' + msg + '\n';
+  el.scrollTop = el.scrollHeight;
+  console.log('[DBG]', msg);
+}
+
+let since = -1;
+let pf = null, pfName = null, pfSize = 0;
+const pendingOffers = {}; // offer_id → File blob
+
+// crypto.randomUUID() недоступен на HTTP (не-localhost) — полифил через Math.random
+function genUUID() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try { return crypto.randomUUID(); } catch(e) {}
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+// ── File picker ───────────────────────────────────────────────────────────────
+
+async function pickFile() {
+  if (isTauri) {
+    // В Tauri-клиенте тоже можно просто через input — File object нам нужен для upload
+    document.getElementById('fi').click();
+  } else {
+    document.getElementById('fi').click();
+  }
+}
+
+document.getElementById('fi').addEventListener('change', function() {
+  if (!this.files[0]) return;
+  const file = this.files[0];
+  pf = file;
+  pfName = file.name; pfSize = file.size;
+  document.getElementById('fn').textContent = pfName;
+  document.getElementById('fbar').style.display = 'flex';
+});
+
+function clearFile() {
+  pf = null; pfName = null;
+  document.getElementById('fi').value = '';
+  document.getElementById('fbar').style.display = 'none';
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+
+async function snd() {
+  const t = document.getElementById('ti').value.trim();
+  if (!t && !pf) return;
+  document.getElementById('ti').value = '';
+
+  const fd = new FormData();
+  fd.append('from', ROLE);
+  if (t) fd.append('text', t);
+
+  if (pf) {
+    // Двухфазный протокол: сначала offer
+    const offerId = genUUID();
+    pendingOffers[offerId] = pf;
+    const ofd = new FormData();
+    ofd.append('from', ROLE);
+    ofd.append('type', 'file_offer');
+    ofd.append('offer_id', offerId);
+    ofd.append('file_name', pfName);
+    ofd.append('file_size', String(pfSize));
+    if (t) ofd.append('text', t);
+    await fetch(api('/api/send'), { method: 'POST', body: ofd }).catch(() => {});
+    clearFile();
+  } else {
+    await fetch(api('/api/send'), { method: 'POST', body: fd }).catch(() => {});
+  }
+}
+
+// ── Download file from server ─────────────────────────────────────────────────
+
+async function downloadFile(fileId, fileName) {
+  if (isTauri) {
+    const savePath = await invoke('save_file_dialog', { defaultName: fileName });
+    if (!savePath) return;
+    const resp = await fetch(api('/api/file/' + fileId));
+    if (!resp.ok) return;
+    const buf = await resp.arrayBuffer();
+    const arr = Array.from(new Uint8Array(buf));
+    await window.__TAURI__.fs.writeBinaryFile(savePath, arr).catch(e => {
+      console.error('Write failed:', e);
+    });
+  } else {
+    const a = document.createElement('a');
+    a.href = api('/api/file/' + fileId);
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+}
+
+// ── Render message ────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fsz(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b/1048576).toFixed(1) + ' MB';
+  return (b/1073741824).toFixed(1) + ' GB';
+}
+function ft(ts) { return new Date(ts*1000).toLocaleTimeString(); }
+
+function addMsg(m) {
+  const box = document.getElementById('msgs');
+  const wrap = document.createElement('div');
+
+  if (m.system) {
+    if (m.type === 'file_accept') {
+      // Сервер принял оффер — загружаем файл
+      const blob = pendingOffers[m.offer_id];
+      if (blob) {
+        const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
+        if (card) {
+          const status = card.querySelector('.offer-pending');
+          if (status) status.textContent = 'Uploading...';
+        }
+        uploadFile(m.offer_id, blob);
+      }
+      return;
+    }
+    if (m.type === 'file_error') {
+      const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
+      if (card) {
+        const status = card.querySelector('.offer-pending');
+        if (status) { status.textContent = '⚠ ' + m.text; status.style.color = '#ff6b6b'; }
+      }
+      return;
+    }
+    wrap.className = 'msg-wrap sys';
+    const bub = document.createElement('div');
+    bub.className = 'bub';
+    bub.textContent = m.text || '';
+    wrap.appendChild(bub);
+  } else if (m.type === 'file_offer') {
+    // Мы сами отправили оффер — показываем статус
+    wrap.className = 'msg-wrap me';
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.dataset.offer = m.offer_id;
+    card.innerHTML =
+      '<span class="file-icon">📤</span>' +
+      '<div class="file-info"><div class="file-name">' + esc(m.file_name) + '</div>' +
+      '<div class="file-size">' + fsz(m.file_size) + '</div>' +
+      '<div class="offer-pending">Awaiting download...</div></div>';
+    const ts = document.createElement('div');
+    ts.className = 'ts';
+    ts.textContent = ft(m.ts);
+    wrap.appendChild(card);
+    wrap.appendChild(ts);
+  } else {
+    const isMe = (m.from === ROLE);
+    wrap.className = 'msg-wrap ' + (isMe ? 'me' : 'them');
+    const bub = document.createElement('div');
+    bub.className = 'bub';
+    if (m.text) {
+      const t = document.createElement('div');
+      t.textContent = m.text;
+      bub.appendChild(t);
+    }
+    if (m.file_id) {
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.innerHTML =
+        '<span class="file-icon">📎</span>' +
+        '<div class="file-info"><div class="file-name">' + esc(m.file_name) + '</div>' +
+        '<div class="file-size">' + fsz(m.file_size) + '</div></div>';
+      const btn = document.createElement('button');
+      btn.className = 'file-btn';
+      btn.textContent = 'Download';
+      btn.onclick = () => downloadFile(m.file_id, m.file_name);
+      card.appendChild(btn);
+      bub.appendChild(card);
+    }
+    const ts = document.createElement('div');
+    ts.className = 'ts';
+    ts.textContent = ft(m.ts);
+    wrap.appendChild(bub);
+    wrap.appendChild(ts);
+  }
+
+  box.appendChild(wrap);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── Upload file to server ─────────────────────────────────────────────────────
+
+async function uploadFile(offerId, blob) {
+  const fd = new FormData();
+  fd.append('file', blob);
+  await fetch(api('/api/upload/' + offerId), { method: 'POST', body: fd }).catch(() => {});
+  delete pendingOffers[offerId];
+}
+
+// ── Init & long-poll ──────────────────────────────────────────────────────────
+
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function poll() {
+  for (;;) {
+    try {
+      const d = await fetch(api('/api/poll?since=' + since)).then(r => r.json());
+      for (const m of d.messages) {
+        since = Math.max(since, m.id);
+        addMsg(m);
+      }
+    } catch(e) {
+      dbg('poll error: ' + e);
+      await sleep(2000);
+    }
+  }
+}
+
+async function init() {
+  dbg('isTauri = ' + isTauri);
+  dbg('SERVER_BASE = "' + (window.SERVER_BASE || '(empty)') + '"');
+  dbg('location.href = ' + window.location.href);
+  dbg('Calling /api/connect ...');
+  document.getElementById('conn-status').textContent = 'Connecting...';
+
+  let r = null;
+  try {
+    r = await fetch(api('/api/connect'), { method: 'POST' });
+    dbg('Response status: ' + r.status);
+  } catch(e) {
+    dbg('fetch ERROR: ' + e);
+    document.getElementById('conn-status').textContent = 'Connection failed: ' + e;
+    return;
+  }
+
+  if (!r) { dbg('r is null'); document.getElementById('conn-status').textContent = 'Connection failed. Reload to retry.'; return; }
+  if (r.status === 409) {
+    dbg('409 Conflict — server busy');
+    document.getElementById('conn').style.display = 'none';
+    document.getElementById('busy').style.display = 'flex';
+    return;
+  }
+  if (!r.ok) {
+    const txt = await r.text().catch(() => '');
+    dbg('Non-OK response: ' + r.status + ' ' + txt);
+    document.getElementById('conn-status').textContent = 'Server error: ' + r.status;
+    return;
+  }
+
+  dbg('Connected OK — showing chat');
+  document.getElementById('conn').style.display = 'none';
+  document.getElementById('chat').style.display = 'flex';
+  document.getElementById('hdrText').textContent = 'Client  |  connected';
+  poll();
+}
+
+window.addEventListener('beforeunload', () => navigator.sendBeacon(api('/api/disconnect')));
+init();
+</script>
+</body>
+</html>

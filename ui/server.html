@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Server</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e0e0e; --surface: #161616; --border: #272727;
+    --text: #e0e0e0; --muted: #555; --accent: #c8f060;
+    --me-bg: #1c2510; --them-bg: #161616;
+    --sys: #3a3a3a; --font: 'IBM Plex Mono', monospace;
+  }
+  html, body { height: 100%; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); display: flex; flex-direction: column; }
+  #wait { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; letter-spacing: .1em; }
+  #wait::before { content: '⏳ '; }
+  #chat { flex: 1; display: none; flex-direction: column; min-height: 0; }
+  #hdr { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  #hdr .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  #msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .msg-wrap { display: flex; flex-direction: column; }
+  .msg-wrap.me { align-items: flex-end; }
+  .msg-wrap.them { align-items: flex-start; }
+  .msg-wrap.sys { align-items: center; }
+  .bub {
+    max-width: 68%; padding: 8px 12px;
+    border: 1px solid var(--border);
+    font-size: 13px; line-height: 1.5; word-break: break-word; white-space: pre-wrap;
+  }
+  .me .bub { background: var(--me-bg); border-color: #2e3a18; }
+  .them .bub { background: var(--them-bg); }
+  .sys .bub { background: transparent; border: none; font-size: 11px; color: var(--sys); padding: 2px 0; }
+  .ts { font-size: 10px; color: var(--muted); margin-top: 3px; padding: 0 2px; }
+  .file-card { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); background: var(--surface); max-width: 280px; }
+  .file-icon { font-size: 18px; flex-shrink: 0; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-size { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .file-btn { font-family: var(--font); font-size: 11px; padding: 5px 10px; border: 1px solid var(--border); background: transparent; color: var(--accent); cursor: pointer; white-space: nowrap; }
+  .file-btn:hover { background: var(--me-bg); }
+  .file-btn:disabled { color: var(--muted); cursor: default; }
+  .file-err { font-size: 11px; color: #ff6b6b; margin-top: 4px; }
+  #fbar { display: none; align-items: center; gap: 8px; padding: 4px 14px 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+  #fbar .fname { color: var(--accent); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #fbar button { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; }
+  #fbar button:hover { color: var(--text); }
+  #irow { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
+  #irow button { width: 32px; height: 32px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-size: 14px; flex-shrink: 0; }
+  #irow button:hover { border-color: var(--accent); color: var(--accent); }
+  #ti { flex: 1; height: 32px; padding: 4px 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
+  #ti:focus { border-color: var(--accent); }
+  #fi { display: none; }
+</style>
+</head>
+<body>
+<div id="wait" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;">
+  <div style="color:#555;font-size:13px;letter-spacing:.1em;">⏳ Waiting for client...</div>
+  <div id="dbg" style="width:100%;max-width:560px;background:#111;border:1px solid #2a2a2a;padding:10px;font-size:11px;color:#888;font-family:'IBM Plex Mono',monospace;max-height:260px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
+</div>
+<div id="chat">
+  <div id="hdr"><span class="dot"></span><span id="hdrText">Server</span></div>
+  <div id="msgs"></div>
+  <div id="fbar">
+    <span>📎</span>
+    <span class="fname" id="fn"></span>
+    <button onclick="clearFile()" title="Remove">✕</button>
+  </div>
+  <div id="irow">
+    <button onclick="pickFile()" title="Attach file">+</button>
+    <input id="fi" type="file">
+    <input id="ti" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')snd()">
+    <button onclick="snd()" title="Send">→</button>
+  </div>
+</div>
+
+<script>
+const ROLE = 'server';
+const isTauri = typeof window.__TAURI__ !== 'undefined';
+// Безопасная инициализация — структура __TAURI__ может отличаться по версиям
+const invoke = isTauri
+  ? (window.__TAURI__.core?.invoke ?? window.__TAURI__?.invoke ?? null)
+  : null;
+let since = -1, pf = null, pfName = null, pfSize = 0, pfMime = 'application/octet-stream';
+
+function dbg(msg) {
+  const el = document.getElementById('dbg');
+  if (!el) return;
+  const ts = new Date().toLocaleTimeString();
+  el.textContent += '[' + ts + '] ' + msg + '\n';
+  el.scrollTop = el.scrollHeight;
+  console.log('[DBG]', msg);
+}
+let shown = false;
+
+// ── File picker ───────────────────────────────────────────────────────────────
+
+async function pickFile() {
+  if (isTauri) {
+    // Нативный диалог, получаем путь
+    const path = await invoke('open_file_dialog');
+    if (!path) return;
+    const meta = await invoke('file_metadata', { path });
+    pfName = meta.name; pfSize = meta.size; pfMime = meta.mime;
+    pf = { type: 'path', path };
+  } else {
+    document.getElementById('fi').click();
+  }
+  if (pfName) {
+    document.getElementById('fn').textContent = pfName;
+    document.getElementById('fbar').style.display = 'flex';
+  }
+}
+
+document.getElementById('fi').addEventListener('change', function() {
+  if (!this.files[0]) return;
+  const file = this.files[0];
+  pf = { type: 'blob', blob: file };
+  pfName = file.name; pfSize = file.size;
+  pfMime = file.type || 'application/octet-stream';
+  document.getElementById('fn').textContent = pfName;
+  document.getElementById('fbar').style.display = 'flex';
+});
+
+function clearFile() {
+  pf = null; pfName = null;
+  document.getElementById('fi').value = '';
+  document.getElementById('fbar').style.display = 'none';
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+
+async function snd() {
+  const t = document.getElementById('ti').value.trim();
+  if (!t && !pf) return;
+  document.getElementById('ti').value = '';
+
+  const fd = new FormData();
+  fd.append('from', ROLE);
+  if (t) fd.append('text', t);
+
+  if (pf) {
+    if (pf.type === 'path') {
+      // Сервер (Tauri): регистрируем файл по пути, без копирования
+      const res = await fetch('/api/register_file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: pf.path, name: pfName, size: pfSize, mime: pfMime })
+      }).then(r => r.json()).catch(() => null);
+
+      if (res && res.file_id) {
+        const mfd = new FormData();
+        mfd.append('from', ROLE);
+        if (t) mfd.append('text', t);
+        // Шлём специальное сообщение типа "file" с уже зарегистрированным fid
+        await fetch('/api/send', { method: 'POST', body: (() => {
+          const f2 = new FormData();
+          f2.append('from', ROLE);
+          if (t) f2.append('text', t);
+          f2.append('type', 'file');
+          f2.append('file_id', res.file_id);
+          f2.append('file_name', pfName);
+          f2.append('file_size', String(pfSize));
+          return f2;
+        })() }).catch(() => {});
+        // Прямой push через register -> message: отправляем сообщение напрямую
+        // Используем JSON endpoint:
+        await fetch('/api/send_file_msg', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ from: ROLE, file_id: res.file_id, file_name: pfName, file_size: pfSize, text: t })
+        }).catch(() => {});
+      }
+    } else {
+      fd.append('file', pf.blob, pfName);
+      await fetch('/api/send', { method: 'POST', body: fd }).catch(() => {});
+    }
+    clearFile();
+  } else {
+    await fetch('/api/send', { method: 'POST', body: fd }).catch(() => {});
+  }
+}
+
+// ── Download file offer (server downloads from client) ─────────────────────
+
+async function acceptOffer(offerId, fileName, btn) {
+  btn.disabled = true;
+  let savePath = null;
+  if (isTauri) {
+    savePath = await invoke('save_file_dialog', { defaultName: fileName });
+    if (!savePath) { btn.disabled = false; return; }
+  } else {
+    savePath = '__browser__:' + fileName; // браузер: файл будет сохранён во временную папку сервера и отдан через /api/file/
+  }
+  const res = await fetch('/api/accept_offer', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ offer_id: offerId, save_path: savePath })
+  }).then(r => r.json()).catch(() => null);
+
+  if (!res || !res.ok) { btn.disabled = false; }
+  // Кнопку оставляем задизейбленной до file_error (тогда включим снова)
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fsz(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b/1048576).toFixed(1) + ' MB';
+  return (b/1073741824).toFixed(1) + ' GB';
+}
+function ft(ts) { return new Date(ts*1000).toLocaleTimeString(); }
+
+// ── Render message ────────────────────────────────────────────────────────────
+
+function addMsg(m) {
+  const box = document.getElementById('msgs');
+  const wrap = document.createElement('div');
+
+  if (m.system) {
+    // Системные: file_accept и file_error обрабатываем отдельно
+    if (m.type === 'file_accept') {
+      // Находим карточку оффера и обновляем статус
+      const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
+      if (card) {
+        const btn = card.querySelector('.file-btn');
+        if (btn) btn.textContent = 'Uploading...';
+      }
+      return;
+    }
+    if (m.type === 'file_ready') {
+      // Файл загружен клиентом и готов — показываем кнопку скачивания
+      const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
+      if (card) {
+        const btn = card.querySelector('.file-btn');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Save';
+          btn.onclick = () => {
+            const a = document.createElement('a');
+            a.href = '/api/file/' + m.file_id;
+            a.download = m.file_name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          };
+        }
+      }
+      // Системное сообщение в чат
+      wrap.className = 'msg-wrap sys';
+      const bub = document.createElement('div');
+      bub.className = 'bub';
+      bub.textContent = m.text || ('Файл получен: ' + m.file_name);
+      wrap.appendChild(bub);
+    } else if (m.type === 'file_error') {
+      const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
+      if (card) {
+        const btn = card.querySelector('.file-btn');
+        if (btn) { btn.textContent = 'Retry'; btn.disabled = false; }
+        let errEl = card.querySelector('.file-err');
+        if (!errEl) { errEl = document.createElement('div'); errEl.className = 'file-err'; card.after(errEl); }
+        errEl.textContent = '⚠ ' + m.text;
+      }
+      return;
+    } else {
+      wrap.className = 'msg-wrap sys';
+      const bub = document.createElement('div');
+      bub.className = 'bub';
+      bub.textContent = m.text || '';
+      wrap.appendChild(bub);
+    }
+  } else if (m.type === 'file_offer') {
+    // Клиент предлагает файл серверу → кнопка Download
+    wrap.className = 'msg-wrap them';
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.dataset.offer = m.offer_id;
+    card.innerHTML =
+      '<span class="file-icon">📥</span>' +
+      '<div class="file-info"><div class="file-name">' + esc(m.file_name) + '</div>' +
+      '<div class="file-size">' + fsz(m.file_size) + '</div></div>' +
+      '<button class="file-btn" onclick="acceptOffer(\'' + m.offer_id + '\',\'' +
+        esc(m.file_name) + '\',this)">Download</button>';
+    const ts = document.createElement('div');
+    ts.className = 'ts';
+    ts.textContent = ft(m.ts);
+    wrap.appendChild(card);
+    wrap.appendChild(ts);
+  } else {
+    const isMe = (m.from === ROLE);
+    wrap.className = 'msg-wrap ' + (isMe ? 'me' : 'them');
+    const bub = document.createElement('div');
+    bub.className = 'bub';
+    if (m.text) {
+      const t = document.createElement('div');
+      t.textContent = m.text;
+      bub.appendChild(t);
+    }
+    if (m.file_id) {
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.innerHTML =
+        '<span class="file-icon">📎</span>' +
+        '<div class="file-info"><div class="file-name">' + esc(m.file_name) + '</div>' +
+        '<div class="file-size">' + fsz(m.file_size) + '</div></div>';
+      const a = document.createElement('a');
+      a.href = '/api/file/' + m.file_id;
+      a.download = m.file_name;
+      a.className = 'file-btn';
+      a.textContent = 'Download';
+      card.appendChild(a);
+      bub.appendChild(card);
+    }
+    const ts = document.createElement('div');
+    ts.className = 'ts';
+    ts.textContent = ft(m.ts);
+    wrap.appendChild(bub);
+    wrap.appendChild(ts);
+  }
+
+  box.appendChild(wrap);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── Long-poll loop ────────────────────────────────────────────────────────────
+
+function showChat() {
+  document.getElementById('wait').style.display = 'none';
+  document.getElementById('chat').style.display = 'flex';
+  document.getElementById('hdrText').textContent = 'Server  |  client connected';
+  shown = true;
+}
+function showWait() {
+  document.getElementById('chat').style.display = 'none';
+  document.getElementById('msgs').innerHTML = '';
+  document.getElementById('wait').style.display = 'flex';
+  shown = false; since = -1;
+}
+
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function run() {
+  dbg('Server UI started');
+  dbg('location.href = ' + window.location.href);
+  let st;
+  try {
+    st = await fetch('/api/status').then(r => r.json());
+    dbg('Initial status: connected=' + st.connected + ' total=' + st.total);
+  } catch(e) {
+    dbg('Status fetch error: ' + e);
+    st = {connected:false,total:0};
+  }
+  if (st.connected) showChat();
+
+  setInterval(async () => {
+    try {
+      const s = await fetch('/api/status').then(r => r.json());
+      dbg('Status poll: connected=' + s.connected);
+      if (s.connected && !shown) showChat();
+      else if (!s.connected && shown) showWait();
+    } catch(e) { dbg('Status interval error: ' + e); }
+  }, 3000);
+
+  for (;;) {
+    try {
+      const d = await fetch('/api/poll?since=' + since).then(r => r.json());
+      dbg('Poll: connected=' + d.connected + ' msgs=' + d.messages.length);
+      if (d.connected && !shown) showChat();
+      else if (!d.connected && shown) showWait();
+      for (const m of d.messages) {
+        since = Math.max(since, m.id);
+        addMsg(m);
+      }
+    } catch(e) {
+      dbg('Poll error: ' + e);
+      await sleep(2000);
+    }
+  }
+}
+run();
+</script>
+</body>
+</html>
