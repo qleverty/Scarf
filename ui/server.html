@@ -79,6 +79,8 @@
 </div>
 
 <script>
+(function(){
+
 function goHome() { window.location.replace('index.html'); }
 
 const ROLE = 'server';
@@ -388,6 +390,13 @@ async function run() {
   }
 }
 run();
+
+window.goHome = goHome;
+window.clearFile = clearFile;
+window.pickFile = pickFile;
+window.snd = snd;
+window.acceptOffer = acceptOffer;
+})();
 </script>
 </body>
 </html>

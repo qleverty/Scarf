@@ -76,6 +76,8 @@
 </div>
 
 <script>
+(function(){
+
 function goHome() { window.location.replace('index.html'); }
 
 const ROLE = 'client';
@@ -371,6 +373,12 @@ async function init() {
 
 window.addEventListener('beforeunload', () => navigator.sendBeacon(api('/api/disconnect')));
 init();
+
+window.goHome = goHome;
+window.clearFile = clearFile;
+window.pickFile = pickFile;
+window.snd = snd;
+})();
 </script>
 </body>
 </html>
