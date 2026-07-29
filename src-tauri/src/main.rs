@@ -4,6 +4,7 @@ mod server;
 mod state;
 
 use state::new_state;
+use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
@@ -22,6 +23,25 @@ async fn file_metadata(path: String) -> Result<serde_json::Value, String> {
     let name = std::path::Path::new(&path).file_name().and_then(|n| n.to_str()).unwrap_or("file").to_string();
     let mime = mime_guess::from_path(&path).first_or_octet_stream().to_string();
     Ok(serde_json::json!({"name":name,"size":meta.len(),"mime":mime}))
+}
+
+// Переводит текущее (единственное) окно "main" на новый адрес.
+//
+// ВАЖНО: раньше здесь была навигация через eval("location.replace(...)"),
+// то есть инициированная СКРИПТОМ ВНУТРИ самой веб-страницы. У Tauri v2 есть
+// защитный guard, который блокирует именно такую программную навигацию окна
+// на произвольный (не задекларированный) origin — это защита от того, чтобы
+// скомпрометированная/вредоносная страница не увела окно приложения на левый
+// адрес. Из-за этого guard'а location.replace() тихо не срабатывал: URL не
+// менялся, скрипт server.html/client.html никогда не запускался — снаружи
+// это выглядело как "пустое окно, будто вообще нет бэкенда".
+//
+// Правильный способ — переключать URL из ДОВЕРЕННОГО Rust-кода через
+// WebviewWindow::navigate(), которая не проходит через этот guard, т.к.
+// инициируется самим хостом приложения, а не содержимым страницы.
+fn navigate_main(app: &tauri::AppHandle, target: url::Url) -> Result<(), String> {
+    let window = app.get_webview_window("main").ok_or("main window not found")?;
+    window.navigate(target).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -50,14 +70,9 @@ async fn start_server(app: tauri::AppHandle, state: tauri::State<'_, AppState>) 
         return Err("Server did not start in time".into());
     }
 
-    tauri::WebviewWindowBuilder::new(
-        &app, "server",
-        tauri::WebviewUrl::External(format!("http://127.0.0.1:{}/server", port).parse().unwrap()),
-    )
-    .title("Scarf — Server")
-    .inner_size(800.0, 600.0)
-    .build()
-    .map_err(|e| e.to_string())?;
+    let target = url::Url::parse(&format!("http://127.0.0.1:{}/server", port))
+        .map_err(|e| e.to_string())?;
+    navigate_main(&app, target)?;
 
     Ok(port)
 }
@@ -73,16 +88,16 @@ async fn connect_to(app: tauri::AppHandle, address: String) -> Result<(), String
         format!("http://{}:4242", address)
     };
 
-    // Открываем локальный client.html и передаём адрес сервера через query-параметр.
-    // WebviewUrl::App принимает PathBuf — query string задаём через std::path::PathBuf::from.
-    tauri::WebviewWindowBuilder::new(
-        &app, "client",
-        tauri::WebviewUrl::App(std::path::PathBuf::from(format!("client.html?server={}", server_url))),
-    )
-    .title("Scarf — Client")
-    .inner_size(800.0, 600.0)
-    .build()
-    .map_err(|e| e.to_string())?;
+    let window = app.get_webview_window("main").ok_or("main window not found")?;
+    // Берём текущий URL окна (index.html на каком бы origin/схеме он ни жил —
+    // tauri://localhost, http://tauri.localhost и т.д.) и резолвим относительно
+    // него client.html — так получаем корректный абсолютный URL независимо от
+    // платформы, без ручного угадывания схемы.
+    let current = window.url().map_err(|e| e.to_string())?;
+    let mut target = current.join("client.html").map_err(|e| e.to_string())?;
+    target.query_pairs_mut().append_pair("server", &server_url);
+
+    navigate_main(&app, target)?;
 
     Ok(())
 }
