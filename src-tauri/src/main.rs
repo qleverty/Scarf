@@ -8,12 +8,12 @@ use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
-async fn open_file_dialog(app: tauri::AppHandle) -> Option<String> {
+fn open_file_dialog(app: tauri::AppHandle) -> Option<String> {
     app.dialog().file().blocking_pick_file().map(|fp| fp.to_string())
 }
 
 #[tauri::command]
-async fn save_file_dialog(app: tauri::AppHandle, default_name: String) -> Option<String> {
+fn save_file_dialog(app: tauri::AppHandle, default_name: String) -> Option<String> {
     app.dialog().file().set_file_name(&default_name).blocking_save_file().map(|fp| fp.to_string())
 }
 
