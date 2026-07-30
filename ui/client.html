@@ -7,44 +7,46 @@
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0e0e0e; --surface: #161616; --border: #272727;
-    --text: #e0e0e0; --muted: #555; --accent: #60c8f0;
-    --me-bg: #0d1f2b; --them-bg: #161616;
-    --sys: #3a3a3a; --font: 'IBM Plex Mono', monospace;
+    --bg: #ffffff; --surface: #ffffff; --border: #000000;
+    --text: #000000; --muted: #000000; --accent: #1a56db;
+    --me-bg: #eaf2ff; --them-bg: #ffffff;
+    --sys: #000000; --font: 'IBM Plex Mono', monospace;
   }
   html, body { height: 100%; }
   body { background: var(--bg); color: var(--text); font-family: var(--font); display: flex; flex-direction: column; }
   .center { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; letter-spacing: .08em; }
-  #busy { display: none; color: #ff6b6b; }
+  #busy { display: none; color: #d92d20; }
   #chat { flex: 1; display: none; flex-direction: column; min-height: 0; }
   #hdr { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
   #hdr .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-  #hdrHome { margin-left: auto; background: none; border: none; color: var(--muted); font-family: var(--font); font-size: 11px; letter-spacing: .1em; cursor: pointer; text-transform: uppercase; }
-  #hdrHome:hover { color: var(--accent); }
   #msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+  #msgs-inner { width: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; }
   .msg-wrap { display: flex; flex-direction: column; }
   .msg-wrap.me { align-items: flex-end; }
   .msg-wrap.them { align-items: flex-start; }
   .msg-wrap.sys { align-items: center; }
   .bub { max-width: 68%; padding: 8px 12px; border: 1px solid var(--border); font-size: 13px; line-height: 1.5; word-break: break-word; white-space: pre-wrap; }
-  .me .bub { background: var(--me-bg); border-color: #183040; }
+  .me .bub { background: var(--me-bg); border-color: #1a56db; }
   .them .bub { background: var(--them-bg); }
   .sys .bub { background: transparent; border: none; font-size: 11px; color: var(--sys); padding: 2px 0; }
   .ts { font-size: 10px; color: var(--muted); margin-top: 3px; padding: 0 2px; }
-  .file-card { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); background: var(--surface); max-width: 280px; }
+  .file-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); background: var(--surface); max-width: 300px; }
   .file-icon { font-size: 18px; flex-shrink: 0; }
   .file-info { flex: 1; min-width: 0; }
-  .file-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .file-size { font-size: 10px; color: var(--muted); margin-top: 2px; }
-  .file-btn { font-family: var(--font); font-size: 11px; padding: 5px 10px; border: 1px solid var(--border); background: transparent; color: var(--accent); cursor: pointer; text-decoration: none; white-space: nowrap; display: inline-block; }
-  .file-btn:hover { background: var(--me-bg); }
-  .file-btn:disabled { color: var(--muted); cursor: default; pointer-events: none; }
-  .offer-pending { color: var(--muted); font-size: 11px; }
-  #fbar { display: none; align-items: center; gap: 8px; padding: 4px 14px 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+  .file-name { font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-meta { font-size: 10px; color: var(--text); margin-top: 3px; }
+  .file-meta.err { color: var(--danger); }
+  .file-action { flex-shrink: 0; }
+  .file-btn { font-family: var(--font); font-size: 11px; padding: 5px 10px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; text-decoration: none; white-space: nowrap; display: inline-block; }
+  .file-btn:hover { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+  .file-btn:disabled { opacity: .4; cursor: default; pointer-events: none; }
+  #fbar { display: none; justify-content: center; padding: 4px 14px 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+  #fbar-inner { width: 100%; max-width: 680px; display: flex; align-items: center; gap: 8px; }
   #fbar .fname { color: var(--accent); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #fbar button { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px; }
   #fbar button:hover { color: var(--text); }
-  #irow { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
+  #irow { display: flex; justify-content: center; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
+  #irow-inner { width: 100%; max-width: 680px; display: flex; gap: 6px; }
   #irow button { width: 32px; height: 32px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-size: 14px; flex-shrink: 0; }
   #irow button:hover { border-color: var(--accent); color: var(--accent); }
   #ti { flex: 1; height: 32px; padding: 4px 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
@@ -54,31 +56,32 @@
 </head>
 <body>
 <div id="conn" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;position:relative;">
-  <button onclick="goHome()" title="Back to start" style="position:absolute;top:10px;right:14px;background:none;border:none;color:#555;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;cursor:pointer;text-transform:uppercase;">← Home</button>
-  <div id="conn-status" style="color:#60c8f0;font-size:13px;letter-spacing:.08em;">Initializing...</div>
-  <div id="dbg" style="width:100%;max-width:560px;background:#111;border:1px solid #2a2a2a;padding:10px;font-size:11px;color:#888;font-family:'IBM Plex Mono',monospace;max-height:260px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
+  <div id="conn-status" style="color:#1a56db;font-size:13px;letter-spacing:.08em;">Initializing...</div>
+  <div id="dbg" style="width:100%;max-width:560px;background:#ffffff;border:1px solid #000000;padding:10px;font-size:11px;color:#000000;font-family:'IBM Plex Mono',monospace;max-height:260px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
 </div>
 <div id="busy" class="center">Server busy — another client is already connected.</div>
 <div id="chat">
-  <div id="hdr"><span class="dot"></span><span id="hdrText">Client</span><button id="hdrHome" onclick="goHome()" title="Back to start">← Home</button></div>
-  <div id="msgs"></div>
+  <div id="hdr"><span class="dot"></span><span id="hdrText">Client</span></div>
+  <div id="msgs"><div id="msgs-inner"></div></div>
   <div id="fbar">
-    <span>📎</span>
-    <span class="fname" id="fn"></span>
-    <button onclick="clearFile()" title="Remove">✕</button>
+    <div id="fbar-inner">
+      <span>📎</span>
+      <span class="fname" id="fn"></span>
+      <button onclick="clearFile()" title="Remove">✕</button>
+    </div>
   </div>
   <div id="irow">
-    <button onclick="pickFile()" title="Attach file">+</button>
-    <input id="fi" type="file">
-    <input id="ti" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')snd()">
-    <button onclick="snd()" title="Send">→</button>
+    <div id="irow-inner">
+      <button onclick="pickFile()" title="Attach file">+</button>
+      <input id="fi" type="file">
+      <input id="ti" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')snd()">
+      <button onclick="snd()" title="Send">→</button>
+    </div>
   </div>
 </div>
 
 <script>
 (function(){
-
-function goHome() { window.location.replace('index.html'); }
 
 const ROLE = 'client';
 const isTauri = typeof window.__TAURI__ !== 'undefined';
@@ -223,8 +226,17 @@ function fsz(b) {
 }
 function ft(ts) { return new Date(ts*1000).toLocaleTimeString(); }
 
+// Единая разметка карточки файла: иконка / имя+статус / слот действия.
+// meta — текст под именем (размер или статус); action — HTML кнопки/ссылки или ''.
+function fileCardHTML(icon, name, meta, action) {
+  return '<span class="file-icon">' + icon + '</span>' +
+    '<div class="file-info"><div class="file-name">' + esc(name) + '</div>' +
+    '<div class="file-meta">' + esc(meta) + '</div></div>' +
+    '<div class="file-action">' + (action || '') + '</div>';
+}
+
 function addMsg(m) {
-  const box = document.getElementById('msgs');
+  const box = document.getElementById('msgs-inner');
   const wrap = document.createElement('div');
 
   if (m.system) {
@@ -234,8 +246,8 @@ function addMsg(m) {
       if (blob) {
         const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
         if (card) {
-          const status = card.querySelector('.offer-pending');
-          if (status) status.textContent = 'Uploading...';
+          const meta = card.querySelector('.file-meta');
+          if (meta) { meta.textContent = 'Uploading...'; meta.classList.remove('err'); }
         }
         uploadFile(m.offer_id, blob);
       }
@@ -244,8 +256,8 @@ function addMsg(m) {
     if (m.type === 'file_error') {
       const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
       if (card) {
-        const status = card.querySelector('.offer-pending');
-        if (status) { status.textContent = '⚠ ' + m.text; status.style.color = '#ff6b6b'; }
+        const meta = card.querySelector('.file-meta');
+        if (meta) { meta.textContent = '⚠ ' + m.text; meta.classList.add('err'); }
       }
       return;
     }
@@ -260,11 +272,7 @@ function addMsg(m) {
     const card = document.createElement('div');
     card.className = 'file-card';
     card.dataset.offer = m.offer_id;
-    card.innerHTML =
-      '<span class="file-icon">📤</span>' +
-      '<div class="file-info"><div class="file-name">' + esc(m.file_name) + '</div>' +
-      '<div class="file-size">' + fsz(m.file_size) + '</div>' +
-      '<div class="offer-pending">Awaiting download...</div></div>';
+    card.innerHTML = fileCardHTML('📤', m.file_name, 'Awaiting download...', '');
     const ts = document.createElement('div');
     ts.className = 'ts';
     ts.textContent = ft(m.ts);
@@ -283,15 +291,13 @@ function addMsg(m) {
     if (m.file_id) {
       const card = document.createElement('div');
       card.className = 'file-card';
-      card.innerHTML =
-        '<span class="file-icon">📎</span>' +
-        '<div class="file-info"><div class="file-name">' + esc(m.file_name) + '</div>' +
-        '<div class="file-size">' + fsz(m.file_size) + '</div></div>';
+      card.innerHTML = fileCardHTML('📎', m.file_name, fsz(m.file_size), '');
+      const action = card.querySelector('.file-action');
       const btn = document.createElement('button');
       btn.className = 'file-btn';
       btn.textContent = 'Download';
       btn.onclick = () => downloadFile(m.file_id, m.file_name);
-      card.appendChild(btn);
+      action.appendChild(btn);
       bub.appendChild(card);
     }
     const ts = document.createElement('div');
@@ -302,7 +308,8 @@ function addMsg(m) {
   }
 
   box.appendChild(wrap);
-  box.scrollTop = box.scrollHeight;
+  const scrollBox = document.getElementById('msgs');
+  scrollBox.scrollTop = scrollBox.scrollHeight;
 }
 
 // ── Upload file to server ─────────────────────────────────────────────────────
@@ -374,7 +381,6 @@ async function init() {
 window.addEventListener('beforeunload', () => navigator.sendBeacon(api('/api/disconnect')));
 init();
 
-window.goHome = goHome;
 window.clearFile = clearFile;
 window.pickFile = pickFile;
 window.snd = snd;

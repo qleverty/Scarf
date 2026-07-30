@@ -45,8 +45,8 @@ fn navigate_main(app: &tauri::AppHandle, target: url::Url) -> Result<(), String>
 }
 
 #[tauri::command]
-async fn start_server(app: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<u16, String> {
-    let port = 4242u16;
+async fn start_server(app: tauri::AppHandle, state: tauri::State<'_, AppState>, port: Option<u16>) -> Result<u16, String> {
+    let port = port.unwrap_or(4242);
     let shared = state.shared.clone();
 
     std::thread::spawn(move || {

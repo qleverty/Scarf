@@ -7,10 +7,10 @@
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0e0e0e; --surface: #161616; --border: #272727;
-    --text: #e0e0e0; --muted: #555; --accent: #c8f060;
-    --me-bg: #1c2510; --them-bg: #161616;
-    --sys: #3a3a3a; --font: 'IBM Plex Mono', monospace;
+    --bg: #ffffff; --surface: #ffffff; --border: #000000;
+    --text: #000000; --muted: #000000; --accent: #1a56db;
+    --me-bg: #eaf2ff; --them-bg: #ffffff;
+    --sys: #000000; --font: 'IBM Plex Mono', monospace;
   }
   html, body { height: 100%; }
   body { background: var(--bg); color: var(--text); font-family: var(--font); display: flex; flex-direction: column; }
@@ -19,9 +19,8 @@
   #chat { flex: 1; display: none; flex-direction: column; min-height: 0; }
   #hdr { padding: 8px 14px; border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
   #hdr .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
-  #hdrHome { margin-left: auto; background: none; border: none; color: var(--muted); font-family: var(--font); font-size: 11px; letter-spacing: .1em; cursor: pointer; text-transform: uppercase; }
-  #hdrHome:hover { color: var(--accent); }
   #msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+  #msgs-inner { width: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; }
   .msg-wrap { display: flex; flex-direction: column; }
   .msg-wrap.me { align-items: flex-end; }
   .msg-wrap.them { align-items: flex-start; }
@@ -31,24 +30,27 @@
     border: 1px solid var(--border);
     font-size: 13px; line-height: 1.5; word-break: break-word; white-space: pre-wrap;
   }
-  .me .bub { background: var(--me-bg); border-color: #2e3a18; }
+  .me .bub { background: var(--me-bg); border-color: #1a56db; }
   .them .bub { background: var(--them-bg); }
   .sys .bub { background: transparent; border: none; font-size: 11px; color: var(--sys); padding: 2px 0; }
   .ts { font-size: 10px; color: var(--muted); margin-top: 3px; padding: 0 2px; }
-  .file-card { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--border); background: var(--surface); max-width: 280px; }
+  .file-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); background: var(--surface); max-width: 300px; }
   .file-icon { font-size: 18px; flex-shrink: 0; }
   .file-info { flex: 1; min-width: 0; }
-  .file-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .file-size { font-size: 10px; color: var(--muted); margin-top: 2px; }
-  .file-btn { font-family: var(--font); font-size: 11px; padding: 5px 10px; border: 1px solid var(--border); background: transparent; color: var(--accent); cursor: pointer; white-space: nowrap; }
-  .file-btn:hover { background: var(--me-bg); }
-  .file-btn:disabled { color: var(--muted); cursor: default; }
-  .file-err { font-size: 11px; color: #ff6b6b; margin-top: 4px; }
-  #fbar { display: none; align-items: center; gap: 8px; padding: 4px 14px 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+  .file-name { font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-meta { font-size: 10px; color: var(--text); margin-top: 3px; }
+  .file-meta.err { color: var(--danger); }
+  .file-action { flex-shrink: 0; }
+  .file-btn { font-family: var(--font); font-size: 11px; padding: 5px 10px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; text-decoration: none; white-space: nowrap; display: inline-block; }
+  .file-btn:hover { background: var(--accent); border-color: var(--accent); color: #ffffff; }
+  .file-btn:disabled { opacity: .4; cursor: default; pointer-events: none; }
+  #fbar { display: none; justify-content: center; padding: 4px 14px 0; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+  #fbar-inner { width: 100%; max-width: 680px; display: flex; align-items: center; gap: 8px; }
   #fbar .fname { color: var(--accent); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #fbar button { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; }
   #fbar button:hover { color: var(--text); }
-  #irow { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
+  #irow { display: flex; justify-content: center; gap: 6px; padding: 8px; border-top: 1px solid var(--border); }
+  #irow-inner { width: 100%; max-width: 680px; display: flex; gap: 6px; }
   #irow button { width: 32px; height: 32px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; font-size: 14px; flex-shrink: 0; }
   #irow button:hover { border-color: var(--accent); color: var(--accent); }
   #ti { flex: 1; height: 32px; padding: 4px 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
@@ -58,30 +60,31 @@
 </head>
 <body>
 <div id="wait" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;position:relative;">
-  <button onclick="goHome()" title="Back to start" style="position:absolute;top:10px;right:14px;background:none;border:none;color:#555;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;cursor:pointer;text-transform:uppercase;">← Home</button>
-  <div style="color:#555;font-size:13px;letter-spacing:.1em;">⏳ Waiting for client...</div>
-  <div id="dbg" style="width:100%;max-width:560px;background:#111;border:1px solid #2a2a2a;padding:10px;font-size:11px;color:#888;font-family:'IBM Plex Mono',monospace;max-height:260px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
+  <div style="color:#000000;font-size:13px;letter-spacing:.1em;">⏳ Waiting for client...</div>
+  <div id="dbg" style="width:100%;max-width:560px;background:#ffffff;border:1px solid #000000;padding:10px;font-size:11px;color:#000000;font-family:'IBM Plex Mono',monospace;max-height:260px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
 </div>
 <div id="chat">
-  <div id="hdr"><span class="dot"></span><span id="hdrText">Server</span><button id="hdrHome" onclick="goHome()" title="Back to start">← Home</button></div>
-  <div id="msgs"></div>
+  <div id="hdr"><span class="dot"></span><span id="hdrText">Server</span></div>
+  <div id="msgs"><div id="msgs-inner"></div></div>
   <div id="fbar">
-    <span>📎</span>
-    <span class="fname" id="fn"></span>
-    <button onclick="clearFile()" title="Remove">✕</button>
+    <div id="fbar-inner">
+      <span>📎</span>
+      <span class="fname" id="fn"></span>
+      <button onclick="clearFile()" title="Remove">✕</button>
+    </div>
   </div>
   <div id="irow">
-    <button onclick="pickFile()" title="Attach file">+</button>
-    <input id="fi" type="file">
-    <input id="ti" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')snd()">
-    <button onclick="snd()" title="Send">→</button>
+    <div id="irow-inner">
+      <button onclick="pickFile()" title="Attach file">+</button>
+      <input id="fi" type="file">
+      <input id="ti" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')snd()">
+      <button onclick="snd()" title="Send">→</button>
+    </div>
   </div>
 </div>
 
 <script>
 (function(){
-
-function goHome() { window.location.replace('index.html'); }
 
 const ROLE = 'server';
 const isTauri = typeof window.__TAURI__ !== 'undefined';
@@ -223,20 +226,30 @@ function fsz(b) {
 }
 function ft(ts) { return new Date(ts*1000).toLocaleTimeString(); }
 
+// Единая разметка карточки файла: иконка / имя+статус / слот действия.
+// meta — текст под именем (размер или статус); action — HTML кнопки/ссылки или ''.
+function fileCardHTML(icon, name, meta, action) {
+  return '<span class="file-icon">' + icon + '</span>' +
+    '<div class="file-info"><div class="file-name">' + esc(name) + '</div>' +
+    '<div class="file-meta">' + esc(meta) + '</div></div>' +
+    '<div class="file-action">' + (action || '') + '</div>';
+}
+
 // ── Render message ────────────────────────────────────────────────────────────
 
 function addMsg(m) {
-  const box = document.getElementById('msgs');
+  const box = document.getElementById('msgs-inner');
   const wrap = document.createElement('div');
 
   if (m.system) {
     // Системные: file_accept и file_error обрабатываем отдельно
     if (m.type === 'file_accept') {
-      // Находим карточку оффера и обновляем статус
       const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
       if (card) {
+        const meta = card.querySelector('.file-meta');
         const btn = card.querySelector('.file-btn');
-        if (btn) btn.textContent = 'Uploading...';
+        if (meta) { meta.textContent = 'Uploading...'; meta.classList.remove('err'); }
+        if (btn) btn.disabled = true;
       }
       return;
     }
@@ -244,11 +257,12 @@ function addMsg(m) {
       // Файл загружен клиентом и готов — показываем кнопку скачивания
       const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
       if (card) {
-        const btn = card.querySelector('.file-btn');
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'Save';
-          btn.onclick = () => {
+        const meta = card.querySelector('.file-meta');
+        const action = card.querySelector('.file-action');
+        if (meta) { meta.textContent = fsz(m.file_size); meta.classList.remove('err'); }
+        if (action) {
+          action.innerHTML = '<button class="file-btn">Save</button>';
+          action.querySelector('.file-btn').onclick = () => {
             const a = document.createElement('a');
             a.href = '/api/file/' + m.file_id;
             a.download = m.file_name;
@@ -267,11 +281,13 @@ function addMsg(m) {
     } else if (m.type === 'file_error') {
       const card = document.querySelector('[data-offer="' + m.offer_id + '"]');
       if (card) {
-        const btn = card.querySelector('.file-btn');
-        if (btn) { btn.textContent = 'Retry'; btn.disabled = false; }
-        let errEl = card.querySelector('.file-err');
-        if (!errEl) { errEl = document.createElement('div'); errEl.className = 'file-err'; card.after(errEl); }
-        errEl.textContent = '⚠ ' + m.text;
+        const meta = card.querySelector('.file-meta');
+        const action = card.querySelector('.file-action');
+        if (meta) { meta.textContent = '⚠ ' + m.text; meta.classList.add('err'); }
+        if (action) {
+          action.innerHTML = '<button class="file-btn" onclick="acceptOffer(\'' + m.offer_id + '\',\'' +
+            esc(m.file_name) + '\',this)">Retry</button>';
+        }
       }
       return;
     } else {
@@ -287,12 +303,9 @@ function addMsg(m) {
     const card = document.createElement('div');
     card.className = 'file-card';
     card.dataset.offer = m.offer_id;
-    card.innerHTML =
-      '<span class="file-icon">📥</span>' +
-      '<div class="file-info"><div class="file-name">' + esc(m.file_name) + '</div>' +
-      '<div class="file-size">' + fsz(m.file_size) + '</div></div>' +
+    card.innerHTML = fileCardHTML('📥', m.file_name, fsz(m.file_size),
       '<button class="file-btn" onclick="acceptOffer(\'' + m.offer_id + '\',\'' +
-        esc(m.file_name) + '\',this)">Download</button>';
+        esc(m.file_name) + '\',this)">Download</button>');
     const ts = document.createElement('div');
     ts.className = 'ts';
     ts.textContent = ft(m.ts);
@@ -311,16 +324,8 @@ function addMsg(m) {
     if (m.file_id) {
       const card = document.createElement('div');
       card.className = 'file-card';
-      card.innerHTML =
-        '<span class="file-icon">📎</span>' +
-        '<div class="file-info"><div class="file-name">' + esc(m.file_name) + '</div>' +
-        '<div class="file-size">' + fsz(m.file_size) + '</div></div>';
-      const a = document.createElement('a');
-      a.href = '/api/file/' + m.file_id;
-      a.download = m.file_name;
-      a.className = 'file-btn';
-      a.textContent = 'Download';
-      card.appendChild(a);
+      card.innerHTML = fileCardHTML('📎', m.file_name, fsz(m.file_size),
+        '<a class="file-btn" href="/api/file/' + m.file_id + '" download="' + esc(m.file_name) + '">Download</a>');
       bub.appendChild(card);
     }
     const ts = document.createElement('div');
@@ -331,7 +336,8 @@ function addMsg(m) {
   }
 
   box.appendChild(wrap);
-  box.scrollTop = box.scrollHeight;
+  const scrollBox = document.getElementById('msgs');
+  scrollBox.scrollTop = scrollBox.scrollHeight;
 }
 
 // ── Long-poll loop ────────────────────────────────────────────────────────────
@@ -344,7 +350,7 @@ function showChat() {
 }
 function showWait() {
   document.getElementById('chat').style.display = 'none';
-  document.getElementById('msgs').innerHTML = '';
+  document.getElementById('msgs-inner').innerHTML = '';
   document.getElementById('wait').style.display = 'flex';
   shown = false; since = -1;
 }
@@ -391,7 +397,6 @@ async function run() {
 }
 run();
 
-window.goHome = goHome;
 window.clearFile = clearFile;
 window.pickFile = pickFile;
 window.snd = snd;

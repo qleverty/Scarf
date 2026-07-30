@@ -12,9 +12,9 @@
       {
         "label": "main",
         "title": "Scarf",
-        "width": 420,
-        "height": 620,
-        "minWidth": 320,
+        "width": 960,
+        "height": 640,
+        "minWidth": 380,
         "minHeight": 420,
         "resizable": true,
         "url": "index.html"

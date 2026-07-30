@@ -7,13 +7,13 @@
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0e0e0e;
-    --surface: #1a1a1a;
-    --border: #2e2e2e;
-    --text: #e8e8e8;
-    --muted: #666;
-    --accent: #c8f060;
-    --danger: #ff4d4d;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --border: #000000;
+    --text: #000000;
+    --muted: #000000;
+    --accent: #1a56db;
+    --danger: #d92d20;
     --radius: 4px;
     --font: 'IBM Plex Mono', monospace;
   }
@@ -89,9 +89,12 @@
   <div class="logo"><span>//</span> P2P Messenger</div>
   <h1>Start or Join</h1>
 
-  <button class="btn" id="btnServer" onclick="startServer()">
-    <span class="icon">▶</span>Start Server
-  </button>
+  <div class="row" style="margin-bottom:10px;">
+    <input class="input" id="port" type="text" placeholder="4242" style="max-width:90px;flex:0 0 90px;">
+    <button class="btn" id="btnServer" onclick="startServer()">
+      <span class="icon">▶</span>Start Server
+    </button>
+  </div>
 
   <button class="btn" id="btnConnect" onclick="toggleConnect()">
     <span class="icon">→</span>Connect to Server
@@ -115,12 +118,19 @@
 <script>
 const { invoke } = window.__TAURI__.core;
 
+// Восстанавливаем последний использованный порт/адрес
+document.getElementById('port').value = localStorage.getItem('lastPort') || '4242';
+document.getElementById('addr').value = localStorage.getItem('lastAddr') || '';
+
 async function startServer() {
   document.getElementById('status').textContent = 'Starting server...';
   document.getElementById('status').className = 'status';
+  const portStr = document.getElementById('port').value.trim();
+  const port = portStr ? parseInt(portStr, 10) : 4242;
   try {
-    const port = await invoke('start_server');
-    document.getElementById('status').textContent = `Server running on :${port}`;
+    const actualPort = await invoke('start_server', { port });
+    localStorage.setItem('lastPort', String(actualPort));
+    document.getElementById('status').textContent = `Server running on :${actualPort}`;
     document.getElementById('status').className = 'status ok';
     document.getElementById('btnServer').disabled = true;
   } catch(e) {
@@ -142,6 +152,7 @@ async function doConnect() {
   }
   document.getElementById('connectErr').style.display = 'none';
   document.getElementById('status').textContent = 'Connecting...';
+  localStorage.setItem('lastAddr', addr);
   try {
     await invoke('connect_to', { address: addr });
     document.getElementById('status').textContent = 'Connecting...';
