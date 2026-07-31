@@ -1,8 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Разрешения для единственного окна приложения (main). Без этого файла tauri-plugin-dialog / tauri-plugin-fs / tauri-plugin-shell не получают permissions в Tauri v2.",
   "windows": ["main"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*", "http://localhost:*"]
+  },
   "permissions": [
     "core:default",
     "core:window:allow-set-title",

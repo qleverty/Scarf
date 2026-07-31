@@ -56,9 +56,12 @@
   #ti { flex: 1; height: 32px; padding: 4px 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: var(--font); font-size: 13px; outline: none; }
   #ti:focus { border-color: var(--accent); }
   #fi { display: none; }
+  #dropOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.82); color: #ffffff; z-index: 999; align-items: center; justify-content: center; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; pointer-events: none; text-align: center; padding: 20px; }
+  #dropOverlay.active { display: flex; }
 </style>
 </head>
 <body>
+<div id="dropOverlay">Drop file to attach</div>
 <div id="wait" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;position:relative;">
   <div style="color:#000000;font-size:13px;letter-spacing:.1em;">⏳ Waiting for client...</div>
   <div id="dbg" style="width:100%;max-width:560px;background:#ffffff;border:1px solid #000000;padding:10px;font-size:11px;color:#000000;font-family:'IBM Plex Mono',monospace;max-height:260px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></div>
@@ -123,14 +126,17 @@ async function pickFile() {
   }
 }
 
-document.getElementById('fi').addEventListener('change', function() {
-  if (!this.files[0]) return;
-  const file = this.files[0];
+function handleFile(file) {
   pf = { type: 'blob', blob: file };
   pfName = file.name; pfSize = file.size;
   pfMime = file.type || 'application/octet-stream';
   document.getElementById('fn').textContent = pfName;
   document.getElementById('fbar').style.display = 'flex';
+}
+
+document.getElementById('fi').addEventListener('change', function() {
+  if (!this.files[0]) return;
+  handleFile(this.files[0]);
 });
 
 function clearFile() {
@@ -138,6 +144,42 @@ function clearFile() {
   document.getElementById('fi').value = '';
   document.getElementById('fbar').style.display = 'none';
 }
+
+// ── Drag & drop ───────────────────────────────────────────────────────────────
+
+let dragDepth = 0;
+const dropOverlay = document.getElementById('dropOverlay');
+
+document.addEventListener('dragenter', function(e) {
+  if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+  e.preventDefault();
+  dragDepth++;
+  dropOverlay.classList.add('active');
+});
+document.addEventListener('dragover', function(e) {
+  if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+  e.preventDefault();
+});
+document.addEventListener('dragleave', function(e) {
+  if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) dropOverlay.classList.remove('active');
+});
+document.addEventListener('drop', function(e) {
+  if (!e.dataTransfer || !e.dataTransfer.types.includes('Files')) return;
+  e.preventDefault();
+  dragDepth = 0;
+  dropOverlay.classList.remove('active');
+
+  const items = e.dataTransfer.items;
+  if (items && items.length) {
+    const entry = items[0].webkitGetAsEntry && items[0].webkitGetAsEntry();
+    if (entry && entry.isDirectory) return; // папки не принимаем
+  }
+  const file = e.dataTransfer.files[0]; // при нескольких файлах берём только первый
+  if (!file) return;
+  handleFile(file);
+});
 
 // ── Send ──────────────────────────────────────────────────────────────────────
 

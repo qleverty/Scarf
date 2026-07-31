@@ -17,6 +17,7 @@
         "minWidth": 380,
         "minHeight": 420,
         "resizable": true,
+        "dragDropEnabled": false,
         "url": "index.html"
       }
     ],
