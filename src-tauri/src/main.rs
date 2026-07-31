@@ -5,25 +5,6 @@ mod state;
 
 use state::new_state;
 use tauri::Manager;
-use tauri_plugin_dialog::DialogExt;
-
-#[tauri::command]
-fn open_file_dialog(app: tauri::AppHandle) -> Option<String> {
-    app.dialog().file().blocking_pick_file().map(|fp| fp.to_string())
-}
-
-#[tauri::command]
-fn save_file_dialog(app: tauri::AppHandle, default_name: String) -> Option<String> {
-    app.dialog().file().set_file_name(&default_name).blocking_save_file().map(|fp| fp.to_string())
-}
-
-#[tauri::command]
-async fn file_metadata(path: String) -> Result<serde_json::Value, String> {
-    let meta = std::fs::metadata(&path).map_err(|e| e.to_string())?;
-    let name = std::path::Path::new(&path).file_name().and_then(|n| n.to_str()).unwrap_or("file").to_string();
-    let mime = mime_guess::from_path(&path).first_or_octet_stream().to_string();
-    Ok(serde_json::json!({"name":name,"size":meta.len(),"mime":mime}))
-}
 
 // Переводит текущее (единственное) окно "main" на новый адрес.
 //
@@ -112,7 +93,7 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .manage(AppState { shared })
         .invoke_handler(tauri::generate_handler![
-            open_file_dialog, save_file_dialog, file_metadata, start_server, connect_to,
+            start_server, connect_to,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

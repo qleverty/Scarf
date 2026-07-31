@@ -111,11 +111,14 @@ let shown = false;
 
 async function pickFile() {
   if (isTauri) {
-    // Нативный диалог, получаем путь
-    const path = await invoke('open_file_dialog');
+    // Нативный диалог через настоящий плагин (не кастомная команда —
+    // кастомные команды не проходят ACL для remote-контента, см. чат)
+    const path = await window.__TAURI__.dialog.open({ multiple: false });
     if (!path) return;
-    const meta = await invoke('file_metadata', { path });
-    pfName = meta.name; pfSize = meta.size; pfMime = meta.mime;
+    const info = await window.__TAURI__.fs.stat(path);
+    pfName = path.split(/[\\/]/).pop();
+    pfSize = info.size;
+    pfMime = guessMime(pfName);
     pf = { type: 'path', path };
   } else {
     document.getElementById('fi').click();
@@ -124,6 +127,16 @@ async function pickFile() {
     document.getElementById('fn').textContent = pfName;
     document.getElementById('fbar').style.display = 'flex';
   }
+}
+
+function guessMime(name) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  const map = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
+    svg: 'image/svg+xml', pdf: 'application/pdf', txt: 'text/plain', json: 'application/json',
+    zip: 'application/zip', mp4: 'video/mp4', mp3: 'audio/mpeg', wav: 'audio/wav'
+  };
+  return map[ext] || 'application/octet-stream';
 }
 
 function handleFile(file) {
@@ -240,7 +253,7 @@ async function acceptOffer(offerId, fileName, btn) {
   btn.disabled = true;
   let savePath = null;
   if (isTauri) {
-    savePath = await invoke('save_file_dialog', { defaultName: fileName });
+    savePath = await window.__TAURI__.dialog.save({ defaultPath: fileName });
     if (!savePath) { btn.disabled = false; return; }
   } else {
     savePath = '__browser__:' + fileName; // браузер: файл будет сохранён во временную папку сервера и отдан через /api/file/

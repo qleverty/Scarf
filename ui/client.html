@@ -236,13 +236,12 @@ async function snd() {
 
 async function downloadFile(fileId, fileName) {
   if (isTauri) {
-    const savePath = await invoke('save_file_dialog', { defaultName: fileName });
+    const savePath = await window.__TAURI__.dialog.save({ defaultPath: fileName });
     if (!savePath) return;
     const resp = await fetch(api('/api/file/' + fileId));
     if (!resp.ok) return;
     const buf = await resp.arrayBuffer();
-    const arr = Array.from(new Uint8Array(buf));
-    await window.__TAURI__.fs.writeBinaryFile(savePath, arr).catch(e => {
+    await window.__TAURI__.fs.writeFile(savePath, new Uint8Array(buf)).catch(e => {
       console.error('Write failed:', e);
     });
   } else {
